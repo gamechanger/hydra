@@ -50,7 +50,7 @@ def mongo_connect(config, ensure_direct=False, secondary_only=False, max_pool_si
 
     most other keyword arguments mirror those for pymongo.MongoClient
     """
-    
+
     options = dict(
         host=config['host'],
         port=config['port'],
@@ -59,23 +59,26 @@ def mongo_connect(config, ensure_direct=False, secondary_only=False, max_pool_si
         w=1,
         document_class=document_class,
     )
-    
+
     if read_preference is not None:
         options['read_preference'] = read_preference
     if replicaSet is not None:
         options['replicaSet'] = replicaSet
     if socketTimeoutMS is not None:
         options['socketTimeoutMS'] = socketTimeoutMS
-    
+
     client = pymongo.MongoClient(**options)
 
-    db = config['db']
-    if not client[db].authenticate(
-        config['user'],
-        config['password'],
-        source=config['options'].get('authsource',None)
-    ):
-        raise ValueError("failed to authenticate to %s:%s with user %s and supplied password" % (host, port, user))
+    try:
+        db = config['db']
+        if not client[db].authenticate(
+            config['user'],
+            config['password'],
+            source=config['options'].get('authsource',None)
+        ):
+            raise ValueError("failed to authenticate to %s:%s with user %s and supplied password" % (host, port, user))
+    except Exception as e:
+        logging.warn("Authentication failed with mongo client with {}".format(e))
 
     return client
 
@@ -93,8 +96,8 @@ def parse_mongo_url(uri):
         port = parsed_uri['nodelist'][0][1],
         db = parsed_uri['database'],
         collection = parsed_uri['collection'],
-        user = parsed_uri['username'],
-        password = parsed_uri['password'],
+        user = parsed_uri['username'] or '',
+        password = parsed_uri['password'] or '',
         options = parsed_uri['options'],
     )
 
